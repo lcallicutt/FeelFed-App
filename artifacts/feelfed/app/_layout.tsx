@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -33,6 +34,7 @@ const queryClient = new QueryClient();
 function RootLayoutNav() {
   const router = useRouter();
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     const openMeal = (response: Notifications.NotificationResponse) => {
       const mealId = response.notification.request.content.data?.mealId;
       if (typeof mealId === 'string') router.push(`/log/note?mealId=${encodeURIComponent(mealId)}` as any);
