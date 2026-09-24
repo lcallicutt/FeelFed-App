@@ -1,0 +1,1 @@
+- [Expo file exports](expo-filesystem-version.md) — use the installed SDK's File and Paths APIs for local exports; older string-write calls may fail.

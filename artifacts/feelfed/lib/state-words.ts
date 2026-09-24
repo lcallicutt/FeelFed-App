@@ -1,0 +1,3 @@
+export const FULLNESS_WORDS = ['Running on empty', 'Barely anything in', 'Room to spare', 'Softly satisfied', 'Easing in', 'Comfortably fed', 'Noticing it now', 'Getting close', 'Full and floating', 'Heavy but hopeful', 'Past the ceiling'];
+export const ENERGY_WORDS = ['Flat out', 'Low battery', 'Still showing up', 'Slow start', 'Finding it', 'Steady', 'Steady and warm', 'Picking up', 'Charged', 'Charged and clear', 'Fully lit'];
+export const HYDRATION_WORDS = ['Running dry', 'Barely a sip', 'Dry and dusty', 'Catching up', 'Sipping along', 'Sipping along', 'Topped up', 'Topped up', 'Hydrated and glowing', 'Hydrated and glowing', 'Cool and clear'];
