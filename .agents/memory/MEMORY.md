@@ -1,1 +1,2 @@
 - [Expo file exports](expo-filesystem-version.md) — use the installed SDK's File and Paths APIs for local exports; older string-write calls may fail.
+- [Expo preview verification](expo-preview-validation.md) — web preview success does not verify the embedded iPhone launch or its manifest.
