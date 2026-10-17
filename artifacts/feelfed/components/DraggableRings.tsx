@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { Dimensions, PanResponder, StyleSheet, View } from 'react-native';
-import Svg, { Circle, ClipPath, Defs, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 import { colors } from '@/constants/colors';
 
 const SIZE = Math.min(Dimensions.get('window').width - 52, 340);
@@ -57,7 +57,6 @@ export function DraggableRings({ fullness = .5, energy = .5, hydration = .5, onF
   return (
     <View style={styles.container} {...responder.panHandlers} accessibilityLabel="Drag the fullness, energy, or hydration ring to record a value from zero to ten">
       <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-        <Defs><ClipPath id="bowl"><Path d="M 25 45 Q 50 54 75 45 C 73 77 63 88 50 88 C 37 88 27 77 25 45 Z" /></ClipPath></Defs>
         {metrics.map((metric, index) => {
           const radius = RADII[index], length = SWEEP / 360 * 2 * Math.PI * radius;
           const knob = point(radius, START + metric.value * SWEEP);
@@ -68,14 +67,15 @@ export function DraggableRings({ fullness = .5, energy = .5, hydration = .5, onF
             <Circle cx={knob.x} cy={knob.y} r="11" fill={metric.color} stroke={colors.background} strokeWidth="3" />
           </React.Fragment>;
         })}
-        <Svg x={C - 47} y={C - 47} width="94" height="94" viewBox="0 0 100 100">
+        <G transform={`translate(${C - 47}, ${C - 47}) scale(0.94)`}>
+          <Defs><ClipPath id="bowl"><Path d="M 25 45 Q 50 54 75 45 C 73 77 63 88 50 88 C 37 88 27 77 25 45 Z" /></ClipPath></Defs>
           <Path d="M 25 45 Q 50 54 75 45 C 73 77 63 88 50 88 C 37 88 27 77 25 45 Z" fill={colors.brandTeal} stroke={colors.labels} strokeWidth="2" />
           <Rect x="25" y={waterY} width="50" height="48" fill={waterColor} opacity={.28 + hydration * .38} clipPath="url(#bowl)" />
           <Path d="M 25 45 Q 50 54 75 45" fill="none" stroke={colors.text} strokeWidth="2" />
           <Path d="M 49 45 C 35 39 34 24 29 23 C 40 22 48 29 49 45 Z" fill={colors.fullness} />
           <Path d="M 51 45 C 65 39 66 24 71 23 C 60 22 52 29 51 45 Z" fill={colors.labels} />
           <Circle cx="50" cy="47" r={3 + energy * 2} fill={colors.peach} opacity={.5 + energy * .5} />
-        </Svg>
+        </G>
       </Svg>
     </View>
   );
