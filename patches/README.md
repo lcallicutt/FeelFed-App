@@ -39,8 +39,9 @@ As of 2026-10-17, the latest releases of these packages are still affected:
   nesting at 100 levels with a deliberate SyntaxError before recursive walkers
   execute. Parentheses and mixed groups count toward the same cap; escaped and
   quoted literal braces do not. Normal brace expansion remains unchanged.
-  This protects string-input parsing; callers supplying their own AST objects
-  remain responsible for their depth.
+  The compile, expand, and stringify walkers also enforce a depth limit for
+  caller-supplied ASTs, including cyclic child nodes, so bypassing the parser
+  cannot reintroduce stack exhaustion.
 
 Version-only vulnerability scanners still report these **two high findings**
 because backports intentionally retain upstream package versions. These findings

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { generateKeyPairSync } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -12,8 +12,11 @@ const lock = readFileSync(`${root}pnpm-lock.yaml`, 'utf8');
 // Require the exact locked installation, including its pnpm patch hash.
 function dependency(name, version, patched = false) {
   const prefix = `${name.replace('/', '+')}@${version}`;
+  const hash = patched
+    ? createHash('sha256').update(readFileSync(`${root}patches/${name}@${version}.patch`)).digest('hex')
+    : null;
   const entry = readdirSync(store).find(path =>
-    patched ? path.startsWith(`${prefix}_patch_hash=`) : path === prefix
+    path === (patched ? `${prefix}_patch_hash=${hash}` : prefix)
   );
   assert.ok(entry, `Missing installed ${prefix}${patched ? ' with patch' : ''}`);
   const require = createRequire(`${store}/${entry}/node_modules/${name}/package.json`);
@@ -29,7 +32,8 @@ test('lockfile removes all versions with published security fixes', () => {
     assert.ok(!lock.includes(`${old}:`), `Vulnerable lockfile record: ${old}`);
   }
   for (const name of ['braces@3.0.3', 'node-forge@1.4.0', 'query-string@7.1.3']) {
-    assert.ok(lock.includes(`${name}(patch_hash=`), `Missing locked patch: ${name}`);
+    const hash = createHash('sha256').update(readFileSync(`${root}patches/${name}.patch`)).digest('hex');
+    assert.ok(lock.includes(`${name}(patch_hash=${hash})`), `Missing current locked patch: ${name}`);
   }
 });
 
@@ -82,10 +86,56 @@ test('braces rejects excessive AST depth without native stack exhaustion', () =>
   assert.doesNotThrow(() => braces.parse('"' + '{'.repeat(1000) + '"'));
 });
 
+test('braces recursive walkers also bound caller-supplied AST depth', () => {
+  const { value: braces, require } = dependency('braces', '3.0.3', true);
+  const nested = (depth, cycle = false) => {
+    const root = { type: 'root', nodes: [] };
+    let node = root;
+    for (let i = 0; i < depth; i++) {
+      const child = { type: 'paren', nodes: [], parent: node };
+      node.nodes.push(child);
+      node = child;
+    }
+    node.nodes.push(cycle ? root : { type: 'text', value: 'x' });
+    return root;
+  };
+  // Test fresh trees because expand mutates the AST, and exercise internal
+  // walkers too: the parser is not the only entry point exposed by this package.
+  for (const method of [
+    braces.compile, braces.expand, braces.stringify,
+    require('braces/lib/compile'), require('braces/lib/expand'), require('braces/lib/stringify'),
+  ]) {
+    assert.doesNotThrow(() => method(nested(20)));
+    for (const ast of [nested(4000), nested(20, true)]) {
+      assert.throws(() => method(ast), {
+        name: 'SyntaxError', message: /maximum nesting depth/,
+      });
+    }
+  }
+});
+
+test('Expo signing and glob consumers resolve the locked security patches', () => {
+  const mobile = createRequire(`${root}artifacts/feelfed/package.json`);
+  const expo = createRequire(mobile.resolve('expo/package.json'));
+  const cli = createRequire(expo.resolve('@expo/cli'));
+  const certificates = createRequire(cli.resolve('@expo/code-signing-certificates'));
+  const sandbox = createRequire(`${root}artifacts/mockup-sandbox/package.json`);
+  const glob = createRequire(sandbox.resolve('fast-glob'));
+  const micromatch = createRequire(glob.resolve('micromatch'));
+  for (const [consumer, name, version] of [
+    [certificates, 'node-forge', '1.4.0'],
+    [micromatch, 'braces', '3.0.3'],
+  ]) {
+    const { require: installed } = dependency(name, version, true);
+    assert.equal(consumer.resolve(name), installed.resolve(name));
+  }
+});
+
 test('node-forge rejects extra nested DigestAlgorithm elements', () => {
   const { value: forge } = dependency('node-forge', '1.4.0', true);
   const { privateKey, publicKey } = generateKeyPairSync('rsa', {
     modulusLength: 1024,
+    publicExponent: 3,
     privateKeyEncoding: { type: 'pkcs1', format: 'pem' },
     publicKeyEncoding: { type: 'spki', format: 'pem' },
   });
